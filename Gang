@@ -1,0 +1,244 @@
+if game.PlaceId == 11177482306 then
+    -- Load OrionLib for the GUI
+    local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+    local Window = OrionLib:MakeWindow({
+        Name = "Cayos Hub for Street Wars 2",
+        HidePremium = false,
+        SaveConfig = true,
+        ConfigFolder = "OrionTest"
+    })
+
+    -- Initialize Global Values for toggles
+    _G.killall = false
+    _G.godmode = false
+    _G.autoPickup = false
+    _G.onePunch = false
+    _G.mopAutoFarm = false
+    _G.teleportToSpawn = false
+    _G.fly = false
+    _G.esp = false
+    _G.killAura = false
+    _G.flingAll = false
+    _G.cardAutoFarm = false
+    _G.autoCashOutCards = false
+    _G.autoBuyCards = false
+    _G.autoBuyLaptop = false
+    _G.autoEquipLaptop = false
+    _G.hasAccess = false  -- Track if the player has the correct key
+
+    -- Function to ask for key input
+    function askForKey()
+        local player = game.Players.LocalPlayer
+        local key = OrionLib:MakeInput({
+            Title = "Enter Key",
+            Default = "",
+            Text = "Enter the key to use the script.",
+            SubmitText = "Submit",
+            Callback = function(input)
+                if input == "SW2" then
+                    _G.hasAccess = true
+                    OrionLib:MakeNotification({
+                        Name = "Access Granted",
+                        Content = "You have successfully unlocked the features!",
+                        Image = "rbxassetid://4483345998",
+                        Time = 5
+                    })
+                else
+                    _G.hasAccess = false
+                    OrionLib:MakeNotification({
+                        Name = "Access Denied",
+                        Content = "Incorrect key. Please try again.",
+                        Image = "rbxassetid://4483345998",
+                        Time = 5
+                    })
+                end
+            end
+        })
+    end
+
+    -- Check if the player has access to use the features
+    askForKey()
+
+    -- Function to enable God Mode (keeps player's health at max)
+    function enableGodMode()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+
+        -- Ensure the player has a Humanoid to check health
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+                if _G.godmode and character.Humanoid.Health < character.Humanoid.MaxHealth then
+                    -- Set health back to max if it falls below the max value
+                    character.Humanoid.Health = character.Humanoid.MaxHealth
+                end
+            end)
+        end
+    end
+
+    -- Function for Infinite Ammo
+    function enableInfiniteAmmo()
+        local player = game.Players.LocalPlayer
+        if player.Character then
+            local tool = player.Character:FindFirstChildOfClass("Tool")
+            if tool and tool:FindFirstChild("Ammo") then
+                tool.Ammo.Value = math.huge  -- Set ammo to infinite
+            end
+        end
+    end
+
+    -- Function for Flinging All Players
+    function flingAllPlayers()
+        local players = game.Players:GetPlayers()
+        for _, player in pairs(players) do
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local rootPart = player.Character.HumanoidRootPart
+                -- Apply fling force
+                local force = Instance.new("BodyVelocity")
+                force.MaxForce = Vector3.new(10000, 10000, 10000)
+                force.Velocity = Vector3.new(math.random(-100, 100), math.random(100, 300), math.random(-100, 100))
+                force.Parent = rootPart
+                game.Debris:AddItem(force, 0.1)  -- Remove force after a short delay
+            end
+        end
+    end
+
+    -- Function to enable One Punch kill
+    function enableOnePunch()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+
+        -- Loop to instantly kill enemies with one punch
+        while _G.onePunch and _G.hasAccess do
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local target = nil
+                for _, obj in pairs(workspace:GetChildren()) do
+                    if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 then
+                        -- Check if the object is an enemy
+                        if (obj.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude < 10 then
+                            target = obj
+                            break
+                        end
+                    end
+                end
+                if target then
+                    target.Humanoid.Health = 0  -- Instantly kill the target
+                end
+            end
+            wait(0.1)  -- Delay to avoid performance issues
+        end
+    end
+
+    -- Function to enable KillAll (fires the Tap event continuously)
+    function killAll()
+        while _G.killall and _G.hasAccess do
+            game:GetService("ReplicatedStorage").Remotes.Tap:FireServer()
+            wait(0.0001)  -- Prevents script from overwhelming the server
+        end
+    end
+
+    -- Function for Name ESP
+    function enableNameESP()
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player.Character and player.Character:FindFirstChild("Head") then
+                local billboard = Instance.new("BillboardGui")
+                billboard.Parent = player.Character.Head
+                billboard.Adornee = player.Character.Head
+                billboard.Size = UDim2.new(0, 100, 0, 50)
+                billboard.StudsOffset = Vector3.new(0, 3, 0)
+                local label = Instance.new("TextLabel")
+                label.Parent = billboard
+                label.Size = UDim2.new(1, 0, 1, 0)
+                label.Text = player.Name
+                label.TextColor3 = Color3.fromRGB(255, 255, 255)
+                label.BackgroundTransparency = 1
+            end
+        end
+    end
+
+    -- Function for 75 WalkSpeed
+    function setWalkSpeed()
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 75
+    end
+
+    -- GUI Tabs and Settings
+    local trollTab = Window:MakeTab({
+        Name = "Troll",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    })
+
+    -- Add Toggle for God Mode
+    trollTab:AddToggle({
+        Name = "Enable God Mode",
+        Default = false,
+        Callback = function(state)
+            _G.godmode = state
+            if state then
+                enableGodMode()
+            end
+        end
+    })
+
+    -- Add Button for Infinite Ammo
+    trollTab:AddButton({
+        Name = "Infinite Ammo",
+        Callback = function()
+            enableInfiniteAmmo()
+        end
+    })
+
+    -- Add Button for Fling All Players
+    trollTab:AddButton({
+        Name = "Fling All Players",
+        Callback = function()
+            flingAllPlayers()
+        end
+    })
+
+    -- Add Toggle for One Punch
+    trollTab:AddToggle({
+        Name = "Enable One Punch",
+        Default = false,
+        Callback = function(state)
+            _G.onePunch = state
+            if state then
+                enableOnePunch()
+            end
+        end
+    })
+
+    -- Add Toggle for Kill All
+    trollTab:AddToggle({
+        Name = "Enable Kill All",
+        Default = false,
+        Callback = function(state)
+            _G.killall = state
+            if state then
+                killAll()
+            end
+        end
+    })
+
+    -- Add Toggle for Name ESP
+    trollTab:AddToggle({
+        Name = "Enable Name ESP",
+        Default = false,
+        Callback = function(state)
+            _G.esp = state
+            if state then
+                enableNameESP()
+            end
+        end
+    })
+
+    -- Add Button for 75 WalkSpeed
+    trollTab:AddButton({
+        Name = "75 WalkSpeed",
+        Callback = function()
+            setWalkSpeed()
+        end
+    })
+
+    -- Initialize the OrionLib GUI
+    OrionLib:Init()
+end
